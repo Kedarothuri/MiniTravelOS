@@ -6,18 +6,17 @@ spring:
     username: postgres
     password: Shazam@1601
     driver-class-name: org.postgresql.Driver
-
-    jpa:
+  jpa:
+    hibernate:
+      ddl-auto: validate # Flyway handles database creation, Hibernate only validates schema
+    show-sql: true
+    properties:
       hibernate:
-        ddl-auto: validate # Flyway handles database creation, Hibernate only validates schema
-      show-sql: true
-      properties:
-        hibernate:
-          format_sql: true
+        format_sql: true
 
-  # Enable OpenAPI / Swagger docs UI
-  springdoc:
-    api-docs:
-      path: /api-docs
-    swagger-ui:
-      path: /swagger-ui.html
+# Enable OpenAPI / Swagger docs UI
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
