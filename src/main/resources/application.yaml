@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: MiniArydarTravelOS
+  datasource:
+    url: jdbc:postgresql://localhost:5432/travel_ops_db
+    username: postgres
+    password: Shazam@1601
+    driver-class-name: org.postgresql.Driver
+
+    jpa:
+      hibernate:
+        ddl-auto: validate # Flyway handles database creation, Hibernate only validates schema
+      show-sql: true
+      properties:
+        hibernate:
+          format_sql: true
+
+  # Enable OpenAPI / Swagger docs UI
+  springdoc:
+    api-docs:
+      path: /api-docs
+    swagger-ui:
+      path: /swagger-ui.html
