@@ -6,9 +6,11 @@ import com.example.miniarydartravelos.dto.response.ClientResponseDTO;
 import com.example.miniarydartravelos.dto.response.TravelerResponseDTO;
 import com.example.miniarydartravelos.entity.Client;
 import com.example.miniarydartravelos.entity.Traveler;
+import com.example.miniarydartravelos.enumtype.RequestStatus;
 import com.example.miniarydartravelos.exception.BusinessRuleException;
 import com.example.miniarydartravelos.exception.ResourceNotFoundException;
 import com.example.miniarydartravelos.repository.ClientRepository;
+import com.example.miniarydartravelos.repository.TravelRequestRepository;
 import com.example.miniarydartravelos.repository.TravelerRepository;
 import com.example.miniarydartravelos.service.ClientService;
 import org.springframework.stereotype.Service;
@@ -23,10 +25,13 @@ public class ClientServiceImpl implements ClientService {
 
     private final ClientRepository clientRepository;
     private final TravelerRepository travelerRepository;
+    private final TravelRequestRepository travelRequestRepository;
 
-    public ClientServiceImpl(ClientRepository clientRepository, TravelerRepository travelerRepository) {
+    public ClientServiceImpl(ClientRepository clientRepository, TravelerRepository travelerRepository,
+                             TravelRequestRepository travelRequestRepository) {
         this.clientRepository = clientRepository;
         this.travelerRepository = travelerRepository;
+        this.travelRequestRepository = travelRequestRepository;
     }
 
     @Override
@@ -82,7 +87,14 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found with id: " + id));
 
-        // Note: Business rule checking for active requests/trips will be extended when those repositories are implemented[cite: 1].
+        boolean hasActiveRequests = travelRequestRepository.existsByClientIdAndStatusIn(
+                id, List.of(RequestStatus.NEW, RequestStatus.IN_PROGRESS, RequestStatus.QUOTED, RequestStatus.ACCEPTED)
+        );
+
+        if (hasActiveRequests) {
+            throw new BusinessRuleException("Cannot delete client with active travel requests.");
+        }
+
         clientRepository.delete(client);
     }
 

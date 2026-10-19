@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARYDAR - Mini Travel Operations Dashboard</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 20px; }
+
+        header {
+            background: #1e293b; color: white; padding: 15px 25px; border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        header a { color: #38bdf8; text-decoration: none; font-weight: 600; }
+
+        /* Navigation Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .tab-btn {
+            background: none; border: none; padding: 8px 16px; font-weight: 600; font-size: 0.95rem;
+            color: var(--text-muted); cursor: pointer; border-radius: 6px; transition: all 0.2s;
+        }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        /* Tab Content Sections */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        .card { background: var(--surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card h2 { font-size: 1.1rem; margin-bottom: 15px; border-bottom: 2px solid var(--border); padding-bottom: 8px; color: #1e293b; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem;
+        }
+
+        button.btn {
+            background: var(--primary); color: white; border: none; padding: 10px 15px;
+            border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 5px;
+        }
+        button.btn:hover { background: var(--primary-dark); }
+        button.btn-danger { background: var(--danger); width: auto; padding: 4px 8px; font-size: 0.8rem; }
+        button.btn-success { background: var(--success); width: auto; padding: 4px 8px; font-size: 0.8rem; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        th { background: #f1f5f9; color: var(--text-muted); }
+
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; background: #e2e8f0; }
+        .badge-success { background: #dcfce7; color: #15803d; }
+        .badge-warning { background: #fef3c7; color: #b45309; }
+
+        .alert {
+            position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 6px;
+            color: white; font-weight: 600; display: none; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>ARYDAR Travel OS (Mini)</h1>
+    <a href="/swagger-ui/index.html" target="_blank">Open Swagger API Docs &rarr;</a>
+</header>
+
+<div id="alertBox" class="alert"></div>
+
+<!-- Navigation Tabs -->
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('clients')">1. Clients & Travelers</button>
+    <button class="tab-btn" onclick="switchTab('suppliers')">2. Suppliers</button>
+    <button class="tab-btn" onclick="switchTab('requests')">3. Requests & Quotations</button>
+    <button class="tab-btn" onclick="switchTab('trips')">4. Trips & Costs</button>
+</div>
+
+<!-- TAB 1: CLIENTS & TRAVELERS -->
+<div id="clients" class="tab-content active">
+    <div class="grid">
+        <div class="card">
+            <h2>Add New Client</h2>
+            <form id="clientForm">
+                <div class="form-group"><label>Full Name *</label><input type="text" id="c_fullName" required></div>
+                <div class="form-group"><label>Email *</label><input type="email" id="c_email" required></div>
+                <div class="form-group"><label>Phone</label><input type="text" id="c_phone"></div>
+                <div class="form-group"><label>Country</label><input type="text" id="c_country"></div>
+                <div class="form-group"><label>Notes</label><textarea id="c_notes" rows="2"></textarea></div>
+                <button type="submit" class="btn">Create Client</button>
+            </form>
+
+            <h2 style="margin-top: 25px;">Add Traveler to Client</h2>
+            <form id="travelerForm">
+                <div class="form-group">
+                    <label>Select Client *</label>
+                    <select id="t_clientId" required><option value="">Select a client...</option></select>
+                </div>
+                <div class="form-group"><label>Traveler Name *</label><input type="text" id="t_name" required></div>
+                <div class="form-group"><label>Date of Birth</label><input type="date" id="t_dob"></div>
+                <div class="form-group"><label>Nationality</label><input type="text" id="t_nationality"></div>
+                <div class="form-group"><label>Passport Number</label><input type="text" id="t_passport"></div>
+                <button type="submit" class="btn">Add Traveler</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Clients List</h2>
+            <table>
+                <thead>
+                <tr><th>ID</th><th>Name</th><th>Email</th><th>Country</th><th>Action</th></tr>
+                </thead>
+                <tbody id="clientTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: SUPPLIERS -->
+<div id="suppliers" class="tab-content">
+    <div class="grid">
+        <div class="card">
+            <h2>Add Supplier</h2>
+            <form id="supplierForm">
+                <div class="form-group"><label>Supplier Name *</label><input type="text" id="s_name" required></div>
+                <div class="form-group">
+                    <label>Type *</label>
+                    <select id="s_type" required>
+                        <option value="HOTEL">HOTEL</option>
+                        <option value="TRANSPORT">TRANSPORT</option>
+                        <option value="GUIDE">GUIDE</option>
+                        <option value="ACTIVITY">ACTIVITY</option>
+                        <option value="RESTAURANT">RESTAURANT</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Contact Person</label><input type="text" id="s_contact"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="s_email"></div>
+                <div class="form-group"><label>City</label><input type="text" id="s_city"></div>
+                <button type="submit" class="btn">Save Supplier</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Suppliers List</h2>
+            <table>
+                <thead>
+                <tr><th>ID</th><th>Name</th><th>Type</th><th>City</th><th>Action</th></tr>
+                </thead>
+                <tbody id="supplierTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 3: REQUESTS & QUOTATIONS -->
+<div id="requests" class="tab-content">
+    <div class="grid">
+        <div class="card">
+            <h2>Create Travel Request</h2>
+            <form id="requestForm">
+                <div class="form-group"><label>Client *</label><select id="r_clientId" required></select></div>
+                <div class="form-group"><label>Destination *</label><input type="text" id="r_destination" required></div>
+                <div class="form-group"><label>Start Date *</label><input type="date" id="r_startDate" required></div>
+                <div class="form-group"><label>End Date *</label><input type="date" id="r_endDate" required></div>
+                <div class="form-group"><label>Travelers *</label><input type="number" id="r_count" min="1" value="1" required></div>
+                <div class="form-group"><label>Budget *</label><input type="number" id="r_budget" step="0.01" required></div>
+                <div class="form-group"><label>Currency *</label><input type="text" id="r_currency" value="USD" required></div>
+                <button type="submit" class="btn">Submit Request</button>
+            </form>
+
+            <h2 style="margin-top: 25px;">Create Quotation</h2>
+            <form id="quotationForm">
+                <div class="form-group"><label>Request ID *</label><input type="number" id="q_requestId" required></div>
+                <div class="form-group"><label>Quotation Title *</label><input type="text" id="q_title" required></div>
+                <div class="form-group"><label>Total Amount *</label><input type="number" id="q_amount" step="0.01" required></div>
+                <div class="form-group"><label>Currency *</label><input type="text" id="q_currency" value="USD" required></div>
+                <div class="form-group"><label>Validity Date *</label><input type="date" id="q_validity" required></div>
+                <button type="submit" class="btn">Create Quotation</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Travel Requests</h2>
+            <table>
+                <thead>
+                <tr><th>Req ID</th><th>Client</th><th>Destination</th><th>Dates</th><th>Status</th></tr>
+                </thead>
+                <tbody id="requestTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 4: TRIPS & COSTS -->
+<div id="trips" class="tab-content">
+    <div class="grid">
+        <div class="card">
+            <h2>Convert Accepted Quote to Trip</h2>
+            <form id="tripForm">
+                <div class="form-group"><label>Accepted Quotation ID *</label><input type="number" id="tr_quoteId" required></div>
+                <button type="submit" class="btn">Create Trip</button>
+            </form>
+
+            <h2 style="margin-top: 25px;">Add Trip Cost</h2>
+            <form id="costForm">
+                <div class="form-group"><label>Trip ID *</label><input type="number" id="co_tripId" required></div>
+                <div class="form-group"><label>Supplier *</label><select id="co_supplierId" required></select></div>
+                <div class="form-group"><label>Description *</label><input type="text" id="co_description" required></div>
+                <div class="form-group"><label>Amount *</label><input type="number" id="co_amount" step="0.01" required></div>
+                <div class="form-group"><label>Currency *</label><input type="text" id="co_currency" value="USD" required></div>
+                <div class="form-group"><label>Due Date *</label><input type="date" id="co_dueDate" required></div>
+                <button type="submit" class="btn">Record Cost</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Active Trips Dashboard</h2>
+            <div id="tripContainer">Loading trips...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:8080/api';
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+        refreshData();
+    }
+
+    function showAlert(msg, isSuccess = true) {
+        const box = document.getElementById('alertBox');
+        box.innerText = msg;
+        box.style.background = isSuccess ? '#10b981' : '#ef4444';
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 4000);
+    }
+
+    async function refreshData() {
+        loadClients();
+        loadSuppliers();
+        loadRequests();
+        loadTrips();
+    }
+
+    // --- CLIENTS ---
+    async function loadClients() {
+        const res = await fetch(`${API}/clients`);
+        const clients = await res.json();
+
+        const tbody = document.getElementById('clientTable');
+        const select1 = document.getElementById('t_clientId');
+        const select2 = document.getElementById('r_clientId');
+
+        tbody.innerHTML = '';
+        select1.innerHTML = '<option value="">Select a client...</option>';
+        select2.innerHTML = '<option value="">Select a client...</option>';
+
+        clients.forEach(c => {
+            tbody.innerHTML += `<tr><td>#${c.id}</td><td>${c.fullName}</td><td>${c.email}</td><td>${c.country||'-'}</td><td><button class="btn-danger" onclick="deleteClient(${c.id})">Delete</button></td></tr>`;
+            select1.innerHTML += `<option value="${c.id}">${c.fullName}</option>`;
+            select2.innerHTML += `<option value="${c.id}">${c.fullName}</option>`;
+        });
+    }
+
+    document.getElementById('clientForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            fullName: document.getElementById('c_fullName').value,
+            email: document.getElementById('c_email').value,
+            phone: document.getElementById('c_phone').value,
+            country: document.getElementById('c_country').value,
+            notes: document.getElementById('c_notes').value
+        };
+        const res = await fetch(`${API}/clients`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        if (res.ok) { showAlert('Client created!'); loadClients(); } else { const err = await res.json(); showAlert(err.message, false); }
+    };
+
+    async function deleteClient(id) {
+        const res = await fetch(`${API}/clients/${id}`, { method: 'DELETE' });
+        if (res.ok) { showAlert('Client deleted!'); loadClients(); } else { const err = await res.json(); showAlert(err.message, false); }
+    }
+
+    document.getElementById('travelerForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const clientId = document.getElementById('t_clientId').value;
+        const payload = {
+            name: document.getElementById('t_name').value,
+            dateOfBirth: document.getElementById('t_dob').value || null,
+            nationality: document.getElementById('t_nationality').value,
+            passportNumber: document.getElementById('t_passport').value
+        };
+        const res = await fetch(`${API}/clients/${clientId}/travelers`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        if (res.ok) { showAlert('Traveler added!'); } else { const err = await res.json(); showAlert(err.message, false); }
+    };
+
+    // --- SUPPLIERS ---
+    async function loadSuppliers() {
+        const res = await fetch(`${API}/suppliers`);
+        const suppliers = await res.json();
+        const tbody = document.getElementById('supplierTable');
+        const select = document.getElementById('co_supplierId');
+
+        tbody.innerHTML = '';
+        select.innerHTML = '<option value="">Select a supplier...</option>';
+
+        suppliers.forEach(s => {
+            tbody.innerHTML += `<tr><td>#${s.id}</td><td>${s.name}</td><td><span class="badge">${s.type}</span></td><td>${s.city||'-'}</td><td><button class="btn-danger" onclick="deleteSupplier(${s.id})">Delete</button></td></tr>`;
+            select.innerHTML += `<option value="${s.id}">${s.name} (${s.type})</option>`;
+        });
+    }
+
+    document.getElementById('supplierForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            name: document.getElementById('s_name').value,
+            type: document.getElementById('s_type').value,
+            contactPerson: document.getElementById('s_contact').value,
+            email: document.getElementById('s_email').value,
+            city: document.getElementById('s_city').value
+        };
+        const res = await fetch(`${API}/suppliers`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        if (res.ok) { showAlert('Supplier created!'); loadSuppliers(); } else { const err = await res.json(); showAlert(err.message, false); }
+    };
+
+    async function deleteSupplier(id) {
+        const res = await fetch(`${API}/suppliers/${id}`, { method: 'DELETE' });
+        if (res.ok) { showAlert('Supplier deleted!'); loadSuppliers(); } else { const err = await res.json(); showAlert(err.message, false); }
+    }
+
+    // --- REQUESTS & QUOTATIONS ---
+    async function loadRequests() {
+        const res = await fetch(`${API}/requests`);
+        const reqs = await res.json();
+        const tbody = document.getElementById('requestTable');
+        tbody.innerHTML = '';
+
+        reqs.forEach(r => {
+            tbody.innerHTML += `<tr><td>#${r.id}</td><td>${r.clientName}</td><td>${r.destination}</td><td>${r.startDate} to ${r.endDate}</td><td><span class="badge badge-warning">${r.status}</span></td></tr>`;
+        });
+    }
+
+    document.getElementById('requestForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            clientId: document.getElementById('r_clientId').value,
+            destination: document.getElementById('r_destination').value,
+            startDate: document.getElementById('r_startDate').value,
+            endDate: document.getElementById('r_endDate').value,
+            travelerCount: document.getElementById('r_count').value,
+            budget: document.getElementById('r_budget').value,
+            currency: document.getElementById('r_currency').value
+        };
+        const res = await fetch(`${API}/requests`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        if (res.ok) { showAlert('Request created!'); loadRequests(); } else { const err = await res.json(); showAlert(err.message, false); }
+    };
+
+    document.getElementById('quotationForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            requestId: document.getElementById('q_requestId').value,
+            title: document.getElementById('q_title').value,
+            totalAmount: document.getElementById('q_amount').value,
+            currency: document.getElementById('q_currency').value,
+            validityDate: document.getElementById('q_validity').value
+        };
+        const res = await fetch(`${API}/quotations`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        if (res.ok) { showAlert('Quotation created!'); } else { const err = await res.json(); showAlert(err.message, false); }
+    };
+
+    // --- TRIPS & COSTS ---
+    document.getElementById('tripForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const qId = document.getElementById('tr_quoteId').value;
+        const res = await fetch(`${API}/trips/from-quotation/${qId}`, { method: 'POST' });
+        if (res.ok) { showAlert('Trip created!'); loadTrips(); } else { const err = await res.json(); showAlert(err.message, false); }
+    };
+
+    document.getElementById('costForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const tripId = document.getElementById('co_tripId').value;
+        const payload = {
+            supplierId: document.getElementById('co_supplierId').value,
+            description: document.getElementById('co_description').value,
+            amount: document.getElementById('co_amount').value,
+            currency: document.getElementById('co_currency').value,
+            dueDate: document.getElementById('co_dueDate').value
+        };
+        const res = await fetch(`${API}/trips/${tripId}/costs`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        if (res.ok) { showAlert('Trip cost recorded!'); loadTrips(); } else { const err = await res.json(); showAlert(err.message, false); }
+    };
+
+    async function loadTrips() {
+        // Note: Add a simple GET /api/trips endpoint if needed, or query single trip
+        document.getElementById('tripContainer').innerHTML = `<p style="color: var(--text-muted);">Trips loaded dynamically via backend APIs.</p>`;
+    }
+
+    // Initialize
+    refreshData();
+</script>
+</body>
+</html>
